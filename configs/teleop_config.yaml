@@ -1,0 +1,29 @@
+# configs/teleop_config.yaml
+hardware:
+  camera_id: 0
+  stereo_depth: True
+  target_hand: "Left" # Physical right hand on ZED
+
+physics:
+  n_substeps: 16
+  scene_xml: "assets/leap_hand/scene.xml"
+
+filters:
+  joint: { freq: 30.0, mc: 1.0, beta: 0.03 }
+  position: { freq: 30.0, mc: 0.8, beta: 0.005 }
+  wrist: { freq: 30.0, mc: 0.3, beta: 0.01 }
+
+workspace:
+  start_y: 0.30
+  start_z: 0.45
+  trans_scale: 2.0
+  depth_scale: 2.0
+  depth_range: [0.20, 0.90] # min, max
+  depth_mid: 0.45
+
+wrist_control:
+  scale: 2.0
+  deadzones: { rx: 0.03, ry: 0.08, rz: 0.12 }
+  max_rad: 2.0
+  max_step_m: 0.010
+  yaw_boost: { pos: 1.8, neg: 5.0 }
