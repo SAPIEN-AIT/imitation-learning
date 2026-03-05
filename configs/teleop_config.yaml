@@ -5,7 +5,7 @@ hardware:
   target_hand: "Left" # Physical right hand on ZED
 
 physics:
-  n_substeps: 16
+  n_substeps: 8     # reduced from 16 — halves physics CPU load, still smooth at 30 Hz
   scene_xml: "assets/leap_hand/scene.xml"
 
 filters:
@@ -32,4 +32,4 @@ wrist_control:
 # Misc
 hold_pose_sec: 1.0     # keep last pose when hand disappears briefly
 epipolar_tol: 40       # max vertical pixel error for stereo match
-show_camera: true      # display camera feed in a separate window
+show_camera: false      # display camera feed in a separate window

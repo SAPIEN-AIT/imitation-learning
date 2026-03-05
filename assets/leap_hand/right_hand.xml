@@ -64,8 +64,10 @@ Naming Conventions
 
 <mujoco model="leap_rh">
   <compiler angle="radian" meshdir="./assets/"/>
-  <option integrator="implicitfast" cone="elliptic" impratio="100"
-          noslip_iterations="20"/>
+  <!-- M2 Pro optimizations: pyramidal cone (~2× faster), no noslip (irrelevant for
+       position-controlled teleop), fewer solver iterations (50 vs 100 default). -->
+  <option integrator="implicitfast" cone="pyramidal" impratio="10"
+          noslip_iterations="0" iterations="50"/>
 
   <!-- mesh assets -->
   <asset>

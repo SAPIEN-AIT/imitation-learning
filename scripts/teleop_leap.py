@@ -11,8 +11,15 @@ Run with mjpython on macOS:
 """
 
 import multiprocessing as _mp
+import sys
 import time
 from pathlib import Path
+
+# Ensure project root is on sys.path so `src.*` imports work
+# regardless of the working directory.
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 import cv2
 import numpy as np
@@ -26,7 +33,6 @@ from src.vision.detectors import StereoHandTracker
 from src.robots.leap_hand.teleop_interface import LeapTeleopInterface
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-_ROOT = Path(__file__).resolve().parent.parent
 _CONFIG_PATH = _ROOT / "configs" / "teleop_config.yaml"
 
 
@@ -78,7 +84,10 @@ def main() -> None:
     frame_q = None
     viewer_proc = None
     _show_counter = 0
-    _SHOW_EVERY = 5
+    _SHOW_EVERY = 10          # render preview every N frames (saves Cocoa overhead)
+    _STEREO_COUNTER = 0
+    _STEREO_EVERY = 3         # run right-eye MediaPipe every N frames (depth is slow-changing)
+    _cached_res_r = None
     _VIEWER_SCALE = 0.35
 
     if SHOW_CAMERA:
@@ -130,7 +139,17 @@ def main() -> None:
                 continue
 
             h, w, _ = frame_l.shape
-            res_l, res_r = tracker.process(frame_l, frame_r)
+
+            # Right-eye frame-skip: stereo depth changes slowly; skip right-eye
+            # MediaPipe every _STEREO_EVERY frames and cache the result.
+            _STEREO_COUNTER += 1
+            if _STEREO_COUNTER % _STEREO_EVERY == 0 or _cached_res_r is None:
+                res_l, res_r = tracker.process(frame_l, frame_r)
+                _cached_res_r = res_r
+            else:
+                rgb_l = cv2.cvtColor(frame_l, cv2.COLOR_BGR2RGB)
+                res_l = tracker.tracker_left.process(rgb_l)
+                res_r = _cached_res_r
 
             # ---- No hand detected ----
             if not res_l.multi_hand_landmarks:
