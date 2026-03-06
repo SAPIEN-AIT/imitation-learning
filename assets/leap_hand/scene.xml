@@ -28,13 +28,14 @@
             contype="0" conaffinity="0"/>
     </body>
 
-    <!-- Black box (taller, very light) -->
-    <body name="bottle" pos="0.05 0.3 0.07">
-      <freejoint name="bottle_free"/>
-      <geom name="bottle_body" type="box"
-            size="0.02 0.02 0.07"
-            pos="0 0 0" rgba="0.85 0.1 0.1 1"
-            mass="0.03" friction="2.2 0.05 0.001" condim="6"/>
+    <!-- Graspable cylinder — horizontal, long axis along X (left-right) -->
+    <body name="bottle" pos="0.0 0.4 0.45" gravcomp="1">
+      <joint type="free" name="bottle_free" damping="5"/>
+      <geom name="bottle_body" type="cylinder"
+            fromto="-0.07 0 0  0.07 0 0"
+            size="0.02"
+            rgba="0.85 0.1 0.1 1"
+            mass="0.15" friction="5.0 0.1 0.005" condim="6"/>
     </body>
   </worldbody>
 

@@ -31,9 +31,10 @@ from torch.utils.data import Dataset, ConcatDataset
 
 
 # ── Index slices ────────────────────────────────────────────────────────────
+QPOS_OBJ_SLICE    = slice(0, 3)    # bottle xyz position in qpos (freejoint)
 QPOS_FINGER_SLICE = slice(7, 23)   # 16 finger joints in qpos
 QVEL_FINGER_SLICE = slice(6, 22)   # 16 finger joints in qvel
-OBS_DIM = 32                       # 16 qpos + 16 qvel
+OBS_DIM = 35                       # 3 obj_pos + 16 finger qpos + 16 finger qvel
 ACT_DIM = 16                       # ctrl
 
 
@@ -51,11 +52,12 @@ class _SingleDemo(Dataset):
             qvel = f["observations/qvel"][:]        # (T, 28)
             ctrl = f["actions/ctrl"][:]              # (T, 16)
 
-        # Finger-only slices
-        qpos_f = qpos[:, QPOS_FINGER_SLICE]         # (T, 16)
-        qvel_f = qvel[:, QVEL_FINGER_SLICE]          # (T, 16)
+        # Object position + finger slices
+        obj_pos = qpos[:, QPOS_OBJ_SLICE]           # (T,  3)  bottle xyz
+        qpos_f  = qpos[:, QPOS_FINGER_SLICE]         # (T, 16)
+        qvel_f  = qvel[:, QVEL_FINGER_SLICE]          # (T, 16)
 
-        self.obs  = np.concatenate([qpos_f, qvel_f], axis=1).astype(np.float32)   # (T, 32)
+        self.obs  = np.concatenate([obj_pos, qpos_f, qvel_f], axis=1).astype(np.float32)   # (T, 35)
         self.ctrl = ctrl.astype(np.float32)                                         # (T, 16)
 
         # Valid start indices: enough room for a full chunk of future actions

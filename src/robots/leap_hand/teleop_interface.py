@@ -157,11 +157,16 @@ class LeapTeleopInterface:
         if not self.is_calibrated:
             return
 
+        wc = self.config.get("wrist_control", {})
+        wrist_enabled     = wc.get("enabled", True)
+        lock_orientation  = wc.get("lock_orientation", False)
+
         # ── 1. Position update ───────────────────────────────────────────────
-        new_pos = self.filters["pos"](sim_pos)
-        data.mocap_pos[self.mid] = self._apply_step_limit(
-            data.mocap_pos[self.mid], new_pos
-        )
+        if wrist_enabled:
+            new_pos = self.filters["pos"](sim_pos)
+            data.mocap_pos[self.mid] = self._apply_step_limit(
+                data.mocap_pos[self.mid], new_pos
+            )
 
         # ── 2. Orientation update ────────────────────────────────────────────
         raw = self.compute_raw_angles(hand_landmarks)
@@ -231,7 +236,8 @@ class LeapTeleopInterface:
         q = _quat_mul(q, dq_y)
         q = _quat_mul(q, dq_z)
         q = q / np.linalg.norm(q)
-        data.mocap_quat[self.mid] = q
+        if wrist_enabled and not lock_orientation:
+            data.mocap_quat[self.mid] = q
 
         # ── 3. Finger retargeting ────────────────────────────────────────────
         q_raw = self.ik.retarget(None, hand_landmarks)

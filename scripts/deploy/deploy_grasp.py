@@ -42,7 +42,7 @@ import yaml
 import mujoco
 import mujoco.viewer
 
-from src.policy.dataset import QPOS_FINGER_SLICE, QVEL_FINGER_SLICE, OBS_DIM, ACT_DIM
+from src.policy.dataset import QPOS_OBJ_SLICE, QPOS_FINGER_SLICE, QVEL_FINGER_SLICE, OBS_DIM, ACT_DIM
 from src.policy.bc import BCPolicy
 from src.policy.act import ACTPolicy
 
@@ -112,10 +112,11 @@ def load_checkpoint(ckpt_path: str):
 
 def get_obs(data: mujoco.MjData) -> torch.Tensor:
     """Build a (1, OBS_DIM) observation tensor from the sim state."""
-    qpos_f = data.qpos[QPOS_FINGER_SLICE].astype(np.float32)   # (16,)
-    qvel_f = data.qvel[QVEL_FINGER_SLICE].astype(np.float32)   # (16,)
-    obs = np.concatenate([qpos_f, qvel_f])                       # (32,)
-    return torch.from_numpy(obs).unsqueeze(0)                    # (1, 32)
+    obj_pos = data.qpos[QPOS_OBJ_SLICE].astype(np.float32)     # ( 3,)  bottle xyz
+    qpos_f  = data.qpos[QPOS_FINGER_SLICE].astype(np.float32)  # (16,)
+    qvel_f  = data.qvel[QVEL_FINGER_SLICE].astype(np.float32)  # (16,)
+    obs = np.concatenate([obj_pos, qpos_f, qvel_f])             # (35,)
+    return torch.from_numpy(obs).unsqueeze(0)                   # (1, 35)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -211,7 +212,16 @@ def main() -> None:
     START_Z = ws_cfg["start_z"]
     BASE_QUAT = np.array([1.0, 0.0, 0.0, 0.0])   # identity
 
-    def reset_sim() -> None:
+    def reset_sim(*, succeeded: bool | None = None) -> None:
+        nonlocal n_rollouts, n_success
+        if succeeded is not None:
+            n_rollouts += 1
+            if succeeded:
+                n_success += 1
+            rate = n_success / n_rollouts * 100
+            status = "SUCCESS" if succeeded else "fail"
+            print(f"[Deploy] Roll-out {n_rollouts}: {status}  "
+                  f"(success rate {n_success}/{n_rollouts} = {rate:.0f}%)")
         mujoco.mj_resetData(mj_model, mj_data)
         mj_data.mocap_pos[mid]  = np.array([0.0, START_Y, START_Z])
         mj_data.mocap_quat[mid] = BASE_QUAT.copy()
@@ -222,6 +232,17 @@ def main() -> None:
         print("[Deploy] Sim reset — starting new roll-out")
 
     reset_sim()
+
+    # ── Success tracking ─────────────────────────────────────────────────────
+    BOTTLE_START_Z  = 0.28   # z position from scene.xml
+    LIFT_THRESHOLD  = 0.05   # metres above start = success
+    SUCCESS_Z       = BOTTLE_START_Z + LIFT_THRESHOLD
+
+    # Find bottle body id once
+    bottle_id = mj_model.body("bottle").id
+
+    n_rollouts = 0
+    n_success  = 0
 
     # ── State ────────────────────────────────────────────────────────────────
     reset_flag   = False
@@ -255,17 +276,27 @@ def main() -> None:
 
         while v.is_running():
 
+            # ---- Check success ----
+            bottle_z = mj_data.xpos[bottle_id, 2]
+            succeeded = bottle_z >= SUCCESS_Z
+
             # ---- Reset ----
             if reset_flag:
                 reset_flag  = False
-                reset_sim()
+                reset_sim(succeeded=succeeded if step_count > 0 else None)
                 step_count  = 0
                 requery_ctr = 0
                 _ema_action[:] = 0.0
 
             # ---- Auto-reset after max_steps ----
-            if args.max_steps > 0 and step_count >= args.max_steps:
-                reset_sim()
+            elif args.max_steps > 0 and step_count >= args.max_steps:
+                reset_sim(succeeded=succeeded)
+                step_count  = 0
+                requery_ctr = 0
+
+            # ---- Early success reset ----
+            elif succeeded:
+                reset_sim(succeeded=True)
                 step_count  = 0
                 requery_ctr = 0
 

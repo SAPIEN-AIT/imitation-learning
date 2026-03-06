@@ -2,7 +2,7 @@
 # ─── Imitation Learning Training Config ─────────────────────────────────────
 
 data:
-  demo_dir: "data"             # folder with *.h5 demos
+  demo_dir: "data/grasp"       # folder with *.h5 demos
   val_ratio: 0.1               # fraction held out for validation
   num_workers: 0               # DataLoader workers (0 = main thread)
 
@@ -36,7 +36,7 @@ training:
 
 # ── Checkpoints / Logging ───────────────────────────────────────────────────
 output:
-  save_dir: "checkpoints"     # best + last model saved here
+  save_dir: "checkpoints/grasp" # best + last model saved here
   save_every: 50              # save a checkpoint every N epochs (0 = off)
   log_every: 5                # print metrics every N epochs
 

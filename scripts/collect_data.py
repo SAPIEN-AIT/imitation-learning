@@ -10,6 +10,7 @@ Run with mjpython on macOS:
     mjpython scripts/collect_data.py
 """
 
+import argparse
 import multiprocessing as _mp
 import sys
 import time
@@ -37,7 +38,16 @@ from src.utils.data_logger import DataLogger
 _CONFIG_PATH = _ROOT / "configs" / "teleop_config.yaml"
 
 
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Collect LEAP Hand demos")
+    p.add_argument("--task", type=str, default="grasp",
+                   help="Task name — demos saved to data/<task>/  (default: grasp)")
+    return p.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+
     # ── Load config ──────────────────────────────────────────────────────────
     with open(_CONFIG_PATH, "r") as f:
         config = yaml.safe_load(f)
@@ -82,7 +92,7 @@ def main() -> None:
     mujoco.mj_forward(model, data)
 
     # ── Data logger ──────────────────────────────────────────────────────────
-    save_dir = _ROOT / "data"
+    save_dir = _ROOT / "data" / args.task
     logger = DataLogger(save_dir=save_dir)
 
     # ── Weights & Biases (optional) ──────────────────────────────────────────

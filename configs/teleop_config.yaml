@@ -22,6 +22,8 @@ workspace:
   depth_mid: 0.45
 
 wrist_control:
+  enabled: true            # position tracking (hand can move in space)
+  lock_orientation: true   # set to false to also track wrist rotation
   scale: 2.0
   deadzones: { rx: 0.03, ry: 0.08, rz: 0.12 }
   max_rad: 2.0

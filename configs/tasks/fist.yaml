@@ -1,0 +1,44 @@
+# configs/tasks/fist.yaml
+# Phase 0 — fist making (no object, 32-dim obs)
+# Deploy with: mjpython scripts/deploy_fist.py
+
+data:
+  demo_dir: "data/fist"
+  val_ratio: 0.1
+  num_workers: 0
+
+policy: "act"
+
+bc:
+  hidden: [256, 256]
+  dropout: 0.0
+
+act:
+  chunk_size: 10
+  d_model: 256
+  n_heads: 4
+  enc_layers: 2
+  dec_layers: 4
+  latent_dim: 32
+  kl_weight: 10.0
+
+training:
+  epochs: 300
+  batch_size: 64
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  lr_schedule: "cosine"
+  warmup_epochs: 5
+  grad_clip: 1.0
+  seed: 42
+
+output:
+  save_dir: "checkpoints/fist"
+  save_every: 50
+  log_every: 5
+
+wandb:
+  enabled: false
+  project: "binocular-teleop"
+  entity: null
+  tags: ["fist"]
